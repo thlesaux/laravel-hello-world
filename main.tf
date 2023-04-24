@@ -1,15 +1,15 @@
 # Configure GCP project
-provider 'google' {
-  project = 'laravel-hello-world-384413'
+provider "google" {
+  project = "laravel-hello-world-384413"
 }
 # Deploy image to Cloud Run
-resource 'google_cloud_run_service' 'mywebapp' {
-  name     = 'mywebapp'
-  location = 'europe-west9'
+resource "google_cloud_run_service" "mywebapp" {
+  name     = "mywebapp"
+  location = "europe-west9"
   template {
     spec {
       containers {
-        image = 'eu.gcr.io/laravel-hello-world-384413/webapp'
+        image = "eu.gcr.io/laravel-hello-world-384413/webapp"
       }
     }
   }
@@ -19,22 +19,22 @@ resource 'google_cloud_run_service' 'mywebapp' {
   }
 }
 # Create public access
-data 'google_iam_policy' 'noauth' {
+data "google_iam_policy" "noauth" {
   binding {
-    role    = 'roles/run.invoker'
+    role    = "roles/run.invoker"
     members = [
-      'allUsers',
+      "allUsers",
     ]
   }
 }
 # Enable public access on Cloud Run service
-resource 'google_cloud_run_service_iam_policy' 'noauth' {
+resource "google_cloud_run_service_iam_policy" "noauth" {
   location    = google_cloud_run_service.mywebapp.location
   project     = google_cloud_run_service.mywebapp.project
   service     = google_cloud_run_service.mywebapp.name
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 # Return service URL
-output 'url' {
-  value = '${google_cloud_run_service.mywebapp.status[0].url}'
+output "url" {
+  value = "${google_cloud_run_service.mywebapp.status[0].url}"
 }
