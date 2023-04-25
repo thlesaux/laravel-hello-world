@@ -16,6 +16,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 ENV WEB_DOCUMENT_ROOT /app/public
 ENV APP_ENV production
+ENV PORT 8080
+ENV HOST 0.0.0.0
 WORKDIR /app
 COPY . .
 
