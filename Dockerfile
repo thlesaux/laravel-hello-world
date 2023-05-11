@@ -1,38 +1,57 @@
-FROM webdevops/php-nginx:8.0-alpine
+FROM php:8.1-fpm
 
-# Installation dans l'image du minimum pour que Docker fonctionne
-RUN apk add oniguruma-dev libxml2-dev
+# Setup user as root
+USER root
+
+WORKDIR /var/www/html
+
+# Install environment dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        nginx \
+        libpq-dev \
+        libzip-dev \
+        zip \
+        unzip \
+        curl \
+        supervisor && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
 RUN docker-php-ext-install \
-        bcmath \
-        ctype \
-        fileinfo \
-        mbstring \
-        pdo_mysql \
-        tokenizer \
-        xml
+    pdo_mysql \
+    pdo_pgsql \
+    zip
 
-# Installation dans l'image de Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Copy files
+COPY . /var/www/html
 
-ENV WEB_DOCUMENT_ROOT /app/public
-ENV APP_ENV production
-ENV PORT 8080
-ENV HOST 0.0.0.0
-WORKDIR /app
-COPY . .
+# Copy configuration files for php and nginx
+COPY ./docker/local.ini /usr/local/etc/php/local.ini
+COPY ./docker/nginx.conf /etc/nginx/nginx.conf
 
-RUN cp -n .env.example .env
+# Setup composer and laravel
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Installation et configuration du site pour la production
-# https://laravel.com/docs/10.x/deployment#optimizing-configuration-loading
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Install application dependencies
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+
 # Generate security key
 RUN php artisan key:generate
+
 # Optimizing Configuration loading
 RUN php artisan config:cache
+
 # Optimizing Route loading
 RUN php artisan route:cache
+
 # Optimizing View loading
 RUN php artisan view:cache
 
-RUN chown -R application:application .
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html/storage
+
+EXPOSE 8080
+
+CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
