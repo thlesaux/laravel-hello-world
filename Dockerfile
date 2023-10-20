@@ -52,6 +52,8 @@ RUN php artisan view:cache
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html/storage
 
+# Expose port
 EXPOSE 8080
 
+# Start
 CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
